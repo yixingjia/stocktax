@@ -1,0 +1,78 @@
+<!-- templates/visualize.html - New visualization page -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Visualization</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <script src="{{ url_for('static', filename='js/plotly.min.js') }}"></script>
+    <style>
+        .form-container { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .chart-container { height: 70vh; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Stock Trading Visualization</h1>
+            <div>
+                <a href="/" class="btn btn-secondary">Dashboard</a>
+                <a href="/add-trade" class="btn btn-primary ms-2">Add Trade</a>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2 class="h5 mb-0">Filter Options</h2>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="ticker" class="form-label">Stock Ticker</label>
+                        <select class="form-select" id="ticker" name="ticker" required>
+                            {% for ticker in tickers %}
+                                <option value="{{ ticker }}" {% if ticker == selected_ticker %}selected{% endif %}>{{ ticker }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ start_date }}" max="{{ max_date }}" min="{{ min_date }}">
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                               value="{{ end_date }}" max="{{ max_date }}" min="{{ min_date }}">
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Update Chart</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Trading Activity</h2>
+                <span class="badge bg-success">BUY</span>
+                <span class="badge bg-danger">SELL</span>
+            </div>
+            <div class="card-body">
+                {% if plot_html %}
+                    <div class="chart-container">
+                        {{ plot_html|safe }}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <h4>No data available for visualization</h4>
+                        <p>Select a stock and date range to generate chart</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

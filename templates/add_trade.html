@@ -1,0 +1,101 @@
+<!-- templates/add_trade.html - Updated with batch import -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Trade</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <style>
+        .form-container { max-width: 800px; margin: 2rem auto; padding: 2rem; border: 1px solid #dee2e6; border-radius: 0.5rem; }
+        .section { margin-bottom: 2rem; }
+        .section-title { border-bottom: 2px solid #0d6efd; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center py-3">
+            <h1>Add New Trade</h1>
+            <div>
+                <a href="/" class="btn btn-outline-secondary">Dashboard</a>
+                <a href="/visualize" class="btn btn-outline-primary ms-2">Visualize</a>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="form-container bg-light">
+            <div class="section">
+                <h2 class="section-title">Batch Import</h2>
+                <form method="POST" action="{{ url_for('add_trade') }}" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">Upload CSV File</label>
+                        <input class="form-control" type="file" id="csv_file" name="csv_file" accept=".csv">
+                        <div class="form-text">
+                            CSV must contain columns: Date, Ticker, Direction, Price, Shares, Fees, Position Size ($)
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Import CSV</button>
+                </form>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Single Trade Entry</h2>
+                <form method="POST" action="{{ url_for('add_trade') }}">
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required value="{{ request.form.date or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="ticker" class="form-label">Ticker</label>
+                        <input type="text" class="form-control" id="ticker" name="ticker" required value="{{ request.form.ticker or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="direction" class="form-label">Direction</label>
+                        <select class="form-select" id="direction" name="direction" required>
+                            <option value="BUY" {% if request.form.direction == 'BUY' %}selected{% endif %}>BUY</option>
+                            <option value="SELL" {% if request.form.direction == 'SELL' %}selected{% endif %}>SELL</option>
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="price" class="form-label">Price per Share ($)</label>
+                            <input type="number" step="0.0001" class="form-control" id="price" name="price" required value="{{ request.form.price or '' }}">
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="shares" class="form-label">Shares</label>
+                            <input type="number" step="0.0001" class="form-control" id="shares" name="shares" required value="{{ request.form.shares or '' }}">
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="fees" class="form-label">Fees ($)</label>
+                            <input type="number" step="0.01" class="form-control" id="fees" name="fees" required value="{{ request.form.fees or '0' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">Add Trade</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set today's date as default
+        document.getElementById('date').valueAsDate = new Date();
+    </script>
+</body>
+</html>
