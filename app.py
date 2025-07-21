@@ -326,6 +326,111 @@ def visualize():
                            end_date=end_date,
                            plot_html=plot_html)
 
+def compute_current_holdings():
+    conn = sqlite3.connect('stocks.db')
+
+    # Get all transactions in chronological order
+    all_trades = pd.read_sql("""
+        SELECT id, date, ticker, direction, price, shares, fees, position_size
+        FROM trades
+        ORDER BY date, id
+    """, conn)
+
+    # Process holdings for each ticker
+    holdings = {}
+    for ticker in all_trades['ticker'].unique():
+        ticker_trades = all_trades[all_trades['ticker'] == ticker].copy()
+
+        # Process transactions to track holdings
+        current_shares = 0
+        total_cost = 0
+        realized_gain_loss = 0
+        last_reset = None
+        last_buy_date = None
+        fifo_queue = []  # FIFO queue for buy lots: (shares, cost_basis_per_share)
+        cost_of_sold_shares = 0
+        for _, trade in ticker_trades.iterrows():
+            if trade['direction'] == 'BUY':
+                # Calculate cost basis per share (including fees)
+                cost_basis = (-trade['position_size']) / trade['shares']
+
+                # Update holdings
+                current_shares += trade['shares']
+                total_cost += cost_basis * trade['shares']
+                last_buy_date = trade['date']
+
+                # Add to FIFO queue
+                fifo_queue.append({
+                    'shares': trade['shares'],
+                    'cost_basis': cost_basis,
+                    'date': trade['date']
+                })
+
+            else:  # SELL
+                shares_to_sell = trade['shares']
+                cost_of_sold_shares = 0
+
+                # Process FIFO for this sale
+                while shares_to_sell > 0 and fifo_queue:
+                    buy_lot = fifo_queue[0]
+                    shares_used = min(shares_to_sell, buy_lot['shares'])
+
+                    # Calculate portion of cost basis for sold shares
+                    cost_portion = buy_lot['cost_basis'] * shares_used
+                    cost_of_sold_shares += cost_portion
+
+                    # Calculate gain/loss for this portion
+                    proceeds = trade['price'] * shares_used
+                    gain_loss = proceeds - cost_portion
+                    realized_gain_loss += gain_loss
+
+                    # Update FIFO lot
+                    buy_lot['shares'] -= shares_used
+                    shares_to_sell -= shares_used
+
+                    # Remove exhausted buy lots
+                    if buy_lot['shares'] <= 0.0001:
+                        fifo_queue.pop(0)
+
+                # Update current shares
+                current_shares -= trade['shares']
+
+                # Check if position is liquidated
+                if abs(current_shares) < 0.0001:
+                    current_shares = 0
+                    total_cost = 0
+                    realized_gain_loss = 0
+                    fifo_queue = []
+                    last_reset = trade['date']
+
+        # Only include positions with current holdings
+        if current_shares > 0.0001:
+            # Calculate real cost basis: total cost - cost of sold shares - realized gains
+            # This is equivalent to: total cost - proceeds from sales
+            real_cost_basis = total_cost - realized_gain_loss - cost_of_sold_shares
+
+            # More straightforward: real_cost_basis = total_cost - cost_of_sold_shares
+            # But we'll keep the above to match your example calculation
+            avg_cost = real_cost_basis / current_shares if current_shares > 0 else 0
+
+            holdings[ticker] = {
+                'shares': current_shares,
+                'avg_cost': avg_cost,
+                'real_cost_basis': real_cost_basis,
+                'last_buy_date': last_buy_date,
+                'last_reset': last_reset
+            }
+
+    conn.close()
+    return holdings
+
+# New Flask route for holdings page
+@app.route('/holdings')
+def holdings():
+    holdings_data = compute_current_holdings()
+    return render_template('holdings.html', holdings=holdings_data)
+
+
 if __name__ == '__main__':
     # Create database if not exists
     if not os.path.exists('stocks.db'):

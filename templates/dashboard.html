@@ -7,9 +7,15 @@
 </head>
 <body>
     <div class="container mt-4">
-        <h1>Stock Trading Dashboard</h1>
-        <a href="/tax-report" class="btn btn-primary mb-3">View Tax Report</a>
-        
+        <div class="d-flex justify-content-between mb-4">
+            <h1>Stock Trading Dashboard</h1>
+            <div>
+                <a href="/add-trade" class="btn btn-primary">Add Trade</a>
+                <a href="/tax-report" class="btn btn-outline-primary ms-2">Tax Report</a>
+                <a href="/visualize" class="btn btn-outline-primary ms-2">Visualize</a>
+                <a href="/holdings" class="btn btn-outline-primary ms-2">Holdings</a>
+            </div>
+        </div>
         <h2>All Transactions</h2>
         <table class="table table-striped">
             <thead>
